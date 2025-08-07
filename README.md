@@ -7,9 +7,14 @@ Not to be confused with [assimp](https://github.com/assimp/assimp/)
 
 ## Features
 ### Migrating
- - [ ] `bsp_tool.utils.geometry`
- - [ ] `bsp_tool.utils.physics`
- - [ ] `bsp_tool.scene`
+ - [x] `bsp_tool.utils.geometry`
+ - [x] `bsp_tool.utils.physics`
+ - [x] `bsp_tool.utils.quaternion`
+ - [x] `bsp_tool.utils.vector`
+ - [x] `bsp_tool.scene`
+
+ > TODO: tests
+ > TODO: `utils.matrix` (unused, but might come in handy)
 
 ### Planned
  * `Material` update
