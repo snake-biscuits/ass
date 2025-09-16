@@ -2,13 +2,17 @@
 
 copied from `utils_split.md` planning doc
 
+
 ## Tests
  * migrate from `bsp_tool`
    - will require `pytest`
 
 
-## `pyproject.toml`
- * dependencies
+## Migrate `bsp_tool` Editor Tools
+ * `utils.editor`
+ * `extensions.editor` -> `breki.ParsedFile`
+   - `.vmf`
+   - `.map`
 
 
 ## Planned Features
