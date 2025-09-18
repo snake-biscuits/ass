@@ -1,21 +1,13 @@
 # ass
 
 **A**bstract **S**olids & **S**cenes
+
 Python Library for handling 3D *ass*ets
 
 Not to be confused with [assimp](https://github.com/assimp/assimp/)
 
+
 ## Features
-### Migrating
- - [x] `bsp_tool.utils.geometry`
- - [x] `bsp_tool.utils.physics`
- - [x] `bsp_tool.utils.quaternion`
- - [x] `bsp_tool.utils.vector`
- - [x] `bsp_tool.scene`
-
- > TODO: tests
- > TODO: `utils.matrix` (unused, but might come in handy)
-
 ### Planned
  * `Material` update
    - Shader Languages (OSL, GLSL, HLSL)
@@ -42,6 +34,10 @@ Not to be confused with [assimp](https://github.com/assimp/assimp/)
 ## Installation
 
 > TODO: how to get ass
+
+```sh
+$ pip install "ass @ git+ssh://git@github.com:snake-biscuits/ass.git"
+```
 
 
 ## Usage
