@@ -1,7 +1,7 @@
-from bsp_tool.scene import khronos
-from bsp_tool.utils import physics
-# from bsp_tool.utils import quaternion
-from bsp_tool.utils import vector
+from ass.scene import khronos
+from ass import physics
+# from ass import quaternion
+from ass import vector
 
 
 def test_cube():
@@ -13,8 +13,7 @@ def test_cube():
     # w/ rotation
     cube_model.angles.z = 45
 
-    cube = khronos.Gltf.from_models({
-        "cube": cube_model})
+    cube = khronos.Gltf.from_models("cube.gltf", {"cube": cube_model})
 
     assert cube.models == {"cube": cube_model}
 

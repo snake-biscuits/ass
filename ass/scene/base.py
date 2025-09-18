@@ -36,8 +36,8 @@ class SceneDescription(breki.ParsedFile):
         return f"<{self.__class__.__name__} {descriptor} @ 0x{id(self):016X}>"
 
     @classmethod
-    def from_models(cls, filename: str, models: ModelList) -> SceneDescription:
-        out = cls(filename)
+    def from_models(cls, filepath: str, models: ModelList) -> SceneDescription:
+        out = cls(filepath)
         if isinstance(models, (list, tuple, set)):
             models = {
                 f"model_{i:03d}": model

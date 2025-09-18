@@ -1,5 +1,5 @@
-from bsp_tool.utils import geometry
-from bsp_tool.utils import vector
+from ass import geometry
+from ass import vector
 
 
 def test_triangle_fan():

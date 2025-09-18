@@ -259,8 +259,8 @@ class Gltf(base.SceneDescription, breki.FriendlyHybridFile):
         raise NotImplementedError()
 
     @classmethod
-    def from_models(cls, models: base.ModelList) -> Gltf:
-        out = super().from_models(models)  # sets .is_parsed
+    def from_models(cls, filepath: str, models: base.ModelList) -> Gltf:
+        out = super().from_models(filepath, models)  # sets .is_parsed
 
         # base json
         out.json = {

@@ -1,7 +1,7 @@
 import math
 
-from bsp_tool import core
-from bsp_tool.utils import vector
+from ass import vector
+from breki import core
 
 import pytest
 

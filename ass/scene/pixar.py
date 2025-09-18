@@ -71,14 +71,14 @@ class Prim:
             yield f'def {self.type_} "{self.name}"'
         yield "{"
         for property_ in self.properties:
-            for line in property_.lines():
+            for line in property_.as_lines():
                 yield f"    {line}"
         if len(self.properties) > 0 and len(self.children) > 0:
             yield ""  # newline
         for i, child in enumerate(self.children):
             if i > 0:
                 yield ""  # newline
-            for line in child.lines():
+            for line in child.as_lines():
                 yield f"    {line}" if line != "" else ""
         yield "}"
 
@@ -110,7 +110,7 @@ class Property:
         metadata = ", ".join(f"{name}={value!r}" for name, value in self.metadata.items())
         return f'Property("{self.type_}", "{self.name}", {usd_repr(self.value)}, {metadata})'
 
-    def lines(self) -> Generator[str, None, None]:
+    def as_lines(self) -> Generator[str, None, None]:
         value = list(map(tuple, self.value)) if self.type_[-4:] in ("2f[]", "3f[]") else self.value
         if len(self.metadata) > 0:
             yield f"{self.type_} {self.name} = {usd_repr(value)} ("

@@ -1,7 +1,7 @@
 import math
 
-from bsp_tool.utils.physics import Plane
-from bsp_tool.utils.vector import vec3
+from ass.physics import Plane
+from ass.vector import vec3
 
 import pytest
 

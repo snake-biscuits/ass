@@ -1,6 +1,6 @@
-from bsp_tool.scene import pixar
-from bsp_tool.utils import physics
-from bsp_tool.utils import vector
+from ass.scene import pixar
+from ass import physics
+from ass import vector
 
 
 def test_cube():
@@ -9,9 +9,9 @@ def test_cube():
         vector.vec3(+1, +1, +1))
     cube_model = aabb.as_model()
     cube_model.angles.z = 45
-    cube = pixar.Usd.from_models({"cube": cube_model})
+    cube = pixar.Usd.from_models("cube.usd", {"cube": cube_model})
 
-    lines = list(cube.lines())
+    lines = cube.as_lines()
     assert len(lines) != 0
     # assert lines look like a .usda w/ the intended layout
     # top-level metadata

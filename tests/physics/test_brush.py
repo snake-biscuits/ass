@@ -1,8 +1,9 @@
 import math
 # from typing import Dict, List
 
-from bsp_tool.utils.physics import AABB, Brush, Plane
-from bsp_tool.utils.vector import vec3
+from ass.physics import AABB, Brush
+# from ass.physics import Plane
+from ass.vector import vec3
 
 import pytest
 

@@ -1,4 +1,4 @@
-from bsp_tool.utils import editor
+from ass import editor
 
 import pytest
 

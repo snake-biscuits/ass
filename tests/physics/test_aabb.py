@@ -1,21 +1,26 @@
-from bsp_tool.utils import physics
-from bsp_tool.utils import vector
+from ass import physics
+from ass import vector
 
 import pytest
 
 
-mmoes = {"centered": [[x] * 3 for x in (-1, 1, 0, 1)],
-         "mixup": [(-1, -5, -3), (4, 2, 6), (1.5, -1.5, 1.5), (2.5, 3.5, 4.5)]}
+mmoes = {
+    "centered": [[x] * 3 for x in (-1, 1, 0, 1)],
+    "mixup": [(-1, -5, -3), (4, 2, 6), (1.5, -1.5, 1.5), (2.5, 3.5, 4.5)]}
 # ^ {"test_name": [mins, maxs, origin, extents]}
 
 
 # 8 AABBs for each +- axes quadrant possible in 3D space
 def sign(point, pattern):
-    return [[a, -a][p] for a, p in zip(point, pattern)]
+    return [
+        [a, -a][p]
+        for a, p in zip(point, pattern)]
 
 
 def sign2(mins, maxs, pattern):
-    return zip(*[([m, -M][p], [M, -m][p]) for m, M, p in zip(mins, maxs, pattern)])
+    return zip(*[
+        ([m, -M][p], [M, -m][p])
+        for m, M, p in zip(mins, maxs, pattern)])
 
 
 mins = [1] * 3
@@ -23,8 +28,13 @@ maxs = [2] * 3
 origin = [1.5] * 3
 extents = [0.5] * 3
 
-signs = [[i >> j & 1 for j in range(3)] for i in range(8)]
-mmoes.update({f"quadrant{i}": (*sign2(mins, maxs, s), sign(origin, s), extents) for i, s in enumerate(signs)})
+signs = [[
+        i >> j & 1
+        for j in range(3)]
+    for i in range(8)]
+mmoes.update({
+    f"quadrant{i}": (*sign2(mins, maxs, s), sign(origin, s), extents)
+    for i, s in enumerate(signs)})
 
 
 class TestInit:
