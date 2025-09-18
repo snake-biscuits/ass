@@ -1,11 +1,14 @@
 __all__ = [
-    "geometry", "physics", "scene", "vector", "quaternion"]
+    "editor", "geometry", "physics", "scene",
+    "texture", "vector", "quaternion"]
 
+from . import editor
 from . import geometry
 # NOTE: might break material out into it's own module
 # -- will see once we're interacting w/ bite
 from . import physics
 from . import scene  # file formats
+from . import texture  # texture projection for editor
 from . import vector
 from . import quaternion
 
