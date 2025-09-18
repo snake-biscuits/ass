@@ -104,7 +104,7 @@ class Polygon:
     # TODO: CW / CCW check based on normal
     # TODO: keep normals, force CW / CCW (check ? reversed(...) : ...)
 
-    def __init__(self, vertices=list()):
+    def __init__(self, vertices):
         assert len(vertices) >= 3
         self.vertices = vertices
 
@@ -156,9 +156,9 @@ class Mesh:
     material: Material
     polygons: List[Polygon]
 
-    def __init__(self, material=Material("default"), polygons=list()):
+    def __init__(self, material=Material("default"), polygons=None):
         self.material = material
-        self.polygons = polygons
+        self.polygons = polygons if polygons is not None else list()
 
     def __repr__(self) -> str:
         material = self.material
