@@ -9,10 +9,12 @@ copied from `utils_split.md` planning doc
 
 
 ## Migrate `bsp_tool` Editor Tools
- * `utils.editor`
- * `extensions.editor` -> `breki.ParsedFile`
-   - `.vmf`
-   - `.map`
+ * `utils.editor` -> `editor.base`
+ * `extensions.editor` (`breki.ParsedFile` subclasses)
+   - `vmf.hammer.MapFile` -> `editor.valve.Vmf`
+   - `map.cod4.MapFile` -> `editor.infinity_ward.CoD4Map`
+   - `map.quake.MapFile` -> `editor.id_software.Map` -> `QuakeMap`
+   - `map.valve.MapFile` -> `editor.valve.Map` -> `Valve220Map`
 
 
 ## Planned Features
