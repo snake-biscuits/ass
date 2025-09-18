@@ -8,6 +8,9 @@ from .. import geometry
 from .. import vector
 from . import base
 
+import breki
+from breki.files.parsed import parse_first
+
 
 reference_pattern = re.compile(r"@.*@(<.*>)?|<.*>")
 
@@ -38,6 +41,7 @@ def usd_repr(value: Any) -> str:
 
 
 class Prim:
+    """USD Data Node"""
     type_: str
     name: str
     metadata: Dict[str, Any]
@@ -55,7 +59,7 @@ class Prim:
         descriptor = f'{self.type_} "{self.name}"'
         return f"<{self.__class__.__name__} {descriptor} @ 0x{id(self):016X}>"
 
-    def lines(self) -> Generator[str, None, None]:
+    def as_lines(self) -> Generator[str, None, None]:
         # NOTE: "def" is only one specifier
         # -- but we haven't needed "over" or "class" yet
         if len(self.metadata) > 0:
@@ -124,38 +128,67 @@ class Property:
         # return cls(type_, name, value, metadata)
 
 
-class Usd(base.SceneDescription):
+# TODO: friend_patterns for textures & sub-models
+class Usd(base.SceneDescription, breki.FriendlyHybridFile):
     """Pixar's Universal Scene Description format"""
+    exts = {
+        "*.usd": breki.DataType.EITHER,
+        "*.usda": breki.DataType.TEXT,
+        "*.usdc": breki.DataType.BINARY}
+    # NOTE: use .from_archive to load `.usdz`
     models: Dict[str, geometry.Model]
-    exts_txt = [".usda", ".usd"]
-    # NOTE: expects .usd to be text
-    # TODO: detect txt vs. binary format in from_file if ext is .usd
-    exts_bin = [".usdc"]
-    # NOTE: not handling .usdz here, you can use .from_archive I guess
     metadata: Dict[str, Any]
     prims: List[Prim]
 
-    def __init__(self):
-        self.models = dict()
+    def __init__(self, filepath: str, archive=None, code_page=None):
+        super().__init__(filepath, archive, code_page)
         self.metadata = dict(
             defaultPrim="root",
             metersPerUnit=0.0254,  # inches
             upAxis="Z")
         self.prims = list()
 
-    def lines(self) -> Generator[str, None, None]:
+    @parse_first
+    def as_lines(self) -> List[str]:
         # generate prims if none exist & have models
         if len(self.prims) == 0 and len(self.models) > 0:
             self.regenerate_prims()
-        yield "#usda 1.0"
-        yield "("
-        for name, value in self.metadata.items():
-            yield f"    {name} = {usd_repr(value)}"
-        yield ")"
+        out = list()
+        # metadata
+        out.extend([
+            "#usda 1.0",
+            "("])
+        out.extend([
+            f"    {name} = {usd_repr(value)}"
+            for name, value in self.metadata.items()])
+        out.append(")")
+        # prims
         for i, prim in enumerate(self.prims):
-            yield ""  # newline
-            for line in prim.lines():
-                yield line
+            out.append("")  # newline
+            out.extend(prim.as_lines())
+        return out
+
+    def parse_binary(self):
+        if self.is_parsed:
+            return
+        self.is_parsed = True
+        magic = self.stream.read(8)
+        assert magic == b"PXR-USDC"
+        unknown, lump_headers_offset = breki.read_struct(self.stream, "2Q")
+        assert lump_headers_offset < self.size
+        self.stream.seek(lump_headers_offset)
+        num_lump_headers = breki.read_struct(self.stream, "Q")
+        self.lump_headers = dict()
+        for i in range(num_lump_headers):
+            name, offset, length = breki.read_struct(self.stream, "16s2Q")
+            name = name.rstrip(b"\x00").decode(*self.code_page)
+            self.lump_headers[name] = (offset, length)
+            print(f"{name:<16s} | {offset=}, {length=}")
+        # lazy mount lumps
+        for name, (offset, length) in self.lump_headers.items():
+            self.stream.seek(offset)
+            setattr(self, name, self.stream.read(length))
+        # raise NotImplementedError()
 
     # TODO: material variants based on lightmap & cubemap indices (titanfall2)
     # -- could maybe do per-polygon attributes to encode this

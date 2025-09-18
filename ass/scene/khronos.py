@@ -10,6 +10,9 @@ from .. import geometry
 from .. import quaternion
 from . import base
 
+import breki
+from breki.files.parsed import parse_first
+
 
 # TODO: export Z-up geometry.Model as Y-up (add rotation to transform matrix?)
 # TODO: scrap complex vertex & index buffer construction
@@ -17,6 +20,10 @@ from . import base
 # -- keep it simple, just like in utils.geometry
 # TODO: custom JSONEncoder & Decoder classes
 # -- could handle converting enum.Enum
+
+
+# TODO: Dae (COLLADA) [.xml]
+
 
 class Data(enum.Enum):
     """accessor.componentType"""
@@ -43,7 +50,7 @@ def split_sub_format(sub_format: str):
     return count, type_
 
 
-class VertexBuffer:
+class VertexBuffer:  # Json + Binary Data
     """treat as write-only"""
     # ENCODING
     format_: Dict[str, str]
@@ -134,7 +141,7 @@ class VertexBuffer:
         return len(self.vertices) * self.byteStride
 
 
-class IndexBuffer:
+class IndexBuffer:  # Json + BinaryData
     """treat as write-only"""
     indices: List[int]
     meshes: List[Tuple[int, int]]
@@ -209,27 +216,31 @@ class MaterialList:
 BufferPair = Tuple[VertexBuffer, IndexBuffer]
 
 
-class Gltf(base.SceneDescription):
+# TODO: friend_patterns for buffers & textures
+class Gltf(base.SceneDescription, breki.FriendlyHybridFile):
     """WebGL Transmission Format"""
+    exts = {
+        "*.glb": breki.DataType.BINARY,
+        "*.gltf": breki.DataType.TEXT}
     buffers: List[BufferPair]
-    models: Dict[str, geometry.Model]
-    # TODO: named models: Dict[str, geometry.Model]
     json: Json
 
-    def __init__(self):
-        self.models = dict()
+    def __init__(self, filepath: str, archive=None, code_page=None):
+        super().__init__(filepath, archive, code_page)
         self.buffers = list()
         self.json = dict()
 
+    @parse_first
     def __repr__(self) -> str:
         descriptor = f"{len(self.models)} models {len(self.buffers)} buffers"
         return f"<Gltf {descriptor} @ 0x{id(self):016X}>"
 
-    def save_as(self, filename):
+    @parse_first
+    def save_as(self, filepath: str):
         """.gltf only! no .glb (yet)"""
         # TODO: use relpath so we can split off "./" is no folder if given
-        folder, filename = os.path.split(filename)
-        filename, ext = os.path.splitext(filename)
+        folder, filename = os.path.split(filepath)
+        filename, ext = os.path.splitext(filepath)
         assert ext == ".gltf", f"cannot write to '{ext}' extension"
         # write .bin
         for i, buffer_pair in enumerate(self.buffers):
@@ -249,7 +260,7 @@ class Gltf(base.SceneDescription):
 
     @classmethod
     def from_models(cls, models: base.ModelList) -> Gltf:
-        out = super().from_models(models)
+        out = super().from_models(models)  # sets .is_parsed
 
         # base json
         out.json = {

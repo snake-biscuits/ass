@@ -28,6 +28,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 dependencies = [
+    "breki @ git+ssh://git@github.com/snake-biscuits/breki.git"
 ]
 
 
@@ -51,6 +52,7 @@ requires = ["hatchling >= 1.13"]
 build-backend = "hatchling.build"
 
 
+# hatchling config
 [tool.hatch.build.targets.sdist]
 include = [
     "/ass/*",
@@ -61,3 +63,7 @@ include = [
 
 [tool.hatch.build.targets.wheel]
 only-packages = true
+
+
+[tool.hatch.metadata]
+allow-direct-references = true
