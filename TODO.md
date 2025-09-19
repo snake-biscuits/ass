@@ -7,7 +7,7 @@ copied from `utils_split.md` planning doc
  - [ ] `base`
    - [ ] `Brush`
    - [ ] `BrushSide`
-   - [ ] `Entity`
+   - [x] `Entity`
    - [ ] `MapFile`
  - [ ] `common`
    - [ ] `comment`
@@ -43,8 +43,17 @@ copied from `utils_split.md` planning doc
 
 ## Consume `abe`
 The first `s` in `ass` stands for Solids
+
 `ass` is handling Brushes, Entities & MapFiles now
 So what do we need `abe` for?
+
+actually, I think Solids is supposed to represent `physics`, not `editor`
+so `editor` can move to `abe` wholesale
+
+it doesn't really fit in with `ass` anyway
+
+`abe` can import `ass` for physics & geometry stuff
+(including `vector`)
 
 
 ## Planned Features
