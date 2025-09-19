@@ -4,7 +4,8 @@ from __future__ import annotations
 import re
 from typing import List
 
-# from .. import texture
+from .. import texture
+from .. import vector
 from . import base
 from . import common
 
@@ -13,12 +14,13 @@ import breki
 
 # TODO: Curves & other non-brush geo
 
-# TODO: texture.TextureVector conversion
-# TODO: uv calculation
 class Projection(common.TokenClass):
     width: int
     height: int
-    unknown: List[float]  # x4
+    unknown: List[float]  # x_offset, y_offset, rotation, unknown?
+    # values observed in unknown[:2] feel like pixel counts (512, 768 etc.)
+    # observed 0, 180 & -180 for unknown[2]
+    # observed 0 for unknown[3]; need more samples
     pattern = re.compile(" ".join([
         *(common.integer,)*2, *(common.double,)*4]))
 
@@ -31,8 +33,24 @@ class Projection(common.TokenClass):
         args = ", ".join(map(str, [self.width, self.height, *self.unknown]))
         return f"{self.__class__.__name__}({args})"
 
+    def __eq__(self, other: Projection) -> bool:
+        return hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash((self.width, self.height, *self.unknown))
+
     def __str__(self) -> str:
         return " ".join(map(str, [self.width, self.height, *self.unknown]))
+
+    def as_texture_vector(self) -> texture.TextureVector:
+        raise NotImplementedError()
+
+    def uv_at(self, point: vector.vec3) -> vector.vec2:
+        raise NotImplementedError()
+
+    @classmethod
+    def from_texture_vector(cls, texture_vector) -> Projection:
+        raise NotImplementedError()
 
     @classmethod
     def from_tokens(cls, tokens: List[str]) -> Projection:
@@ -65,6 +83,9 @@ class BrushSide(base.BrushSide, common.TokenClass):
         out.lightmap = lightmap
         out.shader_projection = shader_projection
         out.lightmap_projection = lightmap_projection
+        out.texture_vector = None
+        # out.texture_vector = property(
+        #     lambda s: s.shader_projection.as_texture_vector())
         return out
 
 
