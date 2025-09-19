@@ -233,7 +233,7 @@ class Brush:
     _planes: List[Plane]
     # TODO: convexity check
     # TODO: planes cancelling each other out
-    # TODO: [extensions.editor / geometry] generate face per plane (side)
+    # TODO: [editor / geometry] generate face per plane (side)
 
     def __init__(self):
         self.bounds = AABB()

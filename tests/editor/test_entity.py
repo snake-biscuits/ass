@@ -9,14 +9,19 @@ import pytest
 inits = {
     "noargs": dict(),
     "classname": dict(classname="worldspawn"),
-    "complex": dict(classname="info_player_start", origin="0 0 0", angles="0 90 0")}
+    "complex": dict(
+        classname="info_player_start",
+        origin="0 0 0",
+        angles="0 90 0")}
 
 
 @pytest.mark.parametrize("kwargs", inits.values(), ids=inits.keys())
 def test_init(kwargs):
     entity = editor.Entity(**kwargs)
     assert set(entity._keys) == set(kwargs.keys())
-    assert all([entity[k] == kwargs[k] for k in kwargs])
+    assert all(
+        entity[key] == kwargs[key]
+        for key in kwargs)
 
 
 def test_init_invalid():

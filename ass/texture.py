@@ -23,7 +23,7 @@ class ProjectionAxis:
 class TextureVector:
     s: ProjectionAxis
     t: ProjectionAxis
-    # TODO: rotation (extensions.editor only)
+    # TODO: rotation (editor only)
 
     def __init__(self, s: ProjectionAxis = None, t: ProjectionAxis = None):
         self.s = ProjectionAxis([1, 0]) if s is None else s

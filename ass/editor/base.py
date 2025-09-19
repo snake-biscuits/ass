@@ -102,7 +102,6 @@ class Entity:
     def __init__(self, **kwargs):
         self.brushes = list()
         self._keys = list()
-        # assert "classname" in kwargs
         for key, value in kwargs.items():
             self[key] = value
 
