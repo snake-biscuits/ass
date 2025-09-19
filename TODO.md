@@ -3,18 +3,48 @@
 copied from `utils_split.md` planning doc
 
 
-## Tests
- * migrate from `bsp_tool`
-   - will require `pytest`
+## `editor` tests
+ - [ ] `base`
+   - [ ] `Brush`
+   - [ ] `BrushSide`
+   - [ ] `Entity`
+   - [ ] `MapFile`
+ - [ ] `common`
+   - [ ] `comment`
+   - [x] `double`
+   - [ ] `filepath`
+   - [ ] `integer`
+   - [ ] `key_value_pair`
+   - [ ] `point`
+   - [ ] `plane`
+   - [ ] `Plane`
+   - [ ] `TokenClass`
+ - [ ] `id_software`
+   - [ ] `BrushSide`
+   - [ ] `QuakeMap`
+ - [ ] `infinity_ward`
+   - [ ] `BrushSide`
+   - [ ] `CoD4Map`
+   - [ ] `Projection`
+ - [ ] `valve`
+   - [ ] `map220`
+     - [ ] `BrushSide`
+     - [ ] `ProjectionAxis`
+     - [ ] `Valve220Map`
+ - [ ] `valve`
+   - [ ] `vmf`
+     - [ ] `Brush`
+     - [ ] `BrushSide`
+     - [ ] `Entity`
+     - [ ] `Node`
+     - [ ] `ProjectionAxis`
+     - [ ] `Vmf`
 
 
-## Migrate `bsp_tool` Editor Tools
- * `utils.editor` -> `editor.base`
- * `extensions.editor` (`breki.ParsedFile` subclasses)
-   - `vmf.hammer.MapFile` -> `editor.valve.Vmf`
-   - `map.cod4.MapFile` -> `editor.infinity_ward.CoD4Map`
-   - `map.quake.MapFile` -> `editor.id_software.Map` -> `QuakeMap`
-   - `map.valve.MapFile` -> `editor.valve.Map` -> `Valve220Map`
+## Consume `abe`
+The first `s` in `ass` stands for Solids
+`ass` is handling Brushes, Entities & MapFiles now
+So what do we need `abe` for?
 
 
 ## Planned Features

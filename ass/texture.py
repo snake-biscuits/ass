@@ -3,8 +3,6 @@ from __future__ import annotations
 from . import vector
 
 
-# TODO: Image class (Issue #159)
-
 class ProjectionAxis:
     axis: vector.vec3
     offset: float
@@ -35,7 +33,7 @@ class TextureVector:
         return iter((self.s, self.t))
 
     def __repr__(self) -> str:
-        return f"TextureAxis({self.s}, {self.t})"
+        return f"{self.__class__.__name__}({self.s!r}, {self.t!r})"
 
     def uv_at(self, point: vector.vec3) -> vector.vec2:
         u = self.s.project(point)

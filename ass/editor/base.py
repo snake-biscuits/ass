@@ -1,12 +1,15 @@
 from __future__ import annotations
 from collections import defaultdict
+import math
 from typing import Any, Dict, List
 
 from .. import geometry
 from .. import physics
 from .. import texture
+from .. import vector
 
 import breki
+from breki.files.parsed import parse_first
 
 
 # TODO: Curve (CoDRadiant)
@@ -47,18 +50,24 @@ class Brush:
 
     def as_physics(self) -> physics.Brush:
         # need to confirm brush is closed & convex
-        # having vertices would make determining bounds easy
+        # having vertices would make determining bounds easier
         raise NotImplementedError()
         out = physics.Brush()
-        out.bounds = physics.AABB()
-        planes = [side.plane for side in self.sides]
-        for plane in planes:
-            if plane.normal:  # is_axial()
-                # TODO: set bounds min/max on that axis
-                # axis = ...
-                out.axial_planes.append(plane)  # does order matter?
+        bounds = dict()
+        for side in self.sides:
+            normal = side.plane.normal.normalised()
+            axes = {
+                math.isclose(getattr(normal, axis), sign): (axis, sign)
+                for axis in "xyz" for sign in (+1, -1)}
+            if True in axes:  # plane is axial (axis aligned)
+                # NOTE: do we need to invert plane distance to get bounds?
+                bounds[axes[True]] = side.plane.distance
+                out.axial_planes.append(side.plane)
             else:
-                out.other_planes.append(plane)
+                out.other_planes.append(side.plane)
+            mins = vector.vec3(bounds.get((axis, -1), +math.inf) for axis in "xyz")
+            maxs = vector.vec3(bounds.get((axis, +1), -math.inf) for axis in "xyz")
+            out.bounds = physics.AABB.from_mins_maxs(mins, maxs)
         return out
 
 
@@ -76,7 +85,7 @@ class BrushSide:
             self.texture_vector = texture.TextureVector.from_normal(self.plane.normal)
         else:
             self.texture_vector = texture_vector
-        self.texture_rotation = self.rotation if rotation is None else rotation
+        self.texture_rotation = self.texture_rotation if rotation is None else rotation
 
     def __repr__(self) -> str:
         # TODO: kwargs for texture axis & rotation (if shorter)
@@ -84,8 +93,7 @@ class BrushSide:
 
 
 class Entity:
-    # could do a class for each classname & use fgd-tool for type conversion...
-    classname: str  # must be defined
+    classname: str  # exposed from _keys
     # NOT KEYVALUES
     brushes: List[Brush]
     _keys: List[str]  # key-value pairs to write
@@ -94,6 +102,7 @@ class Entity:
     def __init__(self, **kwargs):
         self.brushes = list()
         self._keys = list()
+        # assert "classname" in kwargs
         for key, value in kwargs.items():
             self[key] = value
 
@@ -131,17 +140,22 @@ class Entity:
 
 
 class MapFile(breki.ParsedFile):
+    comments: Dict[int, str]
+    # ^ {line_no: "comment"}
     entities: List[Entity]
     worldspawn: Entity = property(lambda s: s.entities[0])
 
     def __init__(self, filepath: str, archive=None, code_page=None):
         super().__init__(filepath, archive, code_page)
+        self.comments = dict()
         self.entities = list()
 
+    @parse_first
     def __repr__(self) -> str:
         descriptor = f'"{self.filename}" {len(self.entities)} entities'
         return f"<{self.__class__.__name__} {descriptor} @ 0x{id(self):016X}>"
 
+    @parse_first
     def search(self, **search: Dict[str, str]) -> List[Entity]:
         """Search for entities by key-values; e.g. .search(key=value) -> [{"key": value, ...}, ...]"""
         return [
@@ -151,8 +165,16 @@ class MapFile(breki.ParsedFile):
                 entity.get(key, "") == value
                 for key, value in search.items()])]
 
+    @parse_first
     def entities_by_classname(self) -> Dict[str, List[Entity]]:
         out = defaultdict(str)
         for entity in self.entities:
             out[entity.classname].append(entity)
         return dict(out)
+
+    @classmethod
+    def from_entities(cls, filepath: str, entities: List[Entity]) -> MapFile:
+        out = cls(filepath)
+        out.entities = entities
+        out.is_parsed = True
+        return out
