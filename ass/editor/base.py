@@ -6,6 +6,8 @@ from .. import geometry
 from .. import physics
 from .. import texture
 
+import breki
+
 
 # TODO: Curve (CoDRadiant)
 # TODO: Displacement (Source)
@@ -61,20 +63,20 @@ class Brush:
 
 
 class BrushSide:
-    plane: physics.Plane
-    shader: str
+    plane: physics.Plane = physics.Plane((0, 0, 1), 0)
+    shader: str = "__TB_empty"
     texture_vector: texture.TextureVector
     # TODO: include rotation in texture.TextureVector
-    texture_rotation: float
+    texture_rotation: float = 0
 
-    def __init__(self, plane=physics.Plane((0, 0, 1), 0), shader="__TB_empty", texture_vector=None, rotation=0):
-        self.plane = plane
-        self.shader = shader
+    def __init__(self, plane=None, shader=None, texture_vector=None, rotation=None):
+        self.plane = self.plane if plane is None else plane
+        self.shader = self.shader if shader is None else shader
         if texture_vector is None:
             self.texture_vector = texture.TextureVector.from_normal(self.plane.normal)
         else:
             self.texture_vector = texture_vector
-        self.texture_rotation = rotation
+        self.texture_rotation = self.rotation if rotation is None else rotation
 
     def __repr__(self) -> str:
         # TODO: kwargs for texture axis & rotation (if shorter)
@@ -128,28 +130,29 @@ class Entity:
         return getattr(self, key, default)
 
 
-class MapFile:
-    comments: Dict[int, str]
-    # ^ {line_no: "comment"}
+class MapFile(breki.ParsedFile):
     entities: List[Entity]
     worldspawn: Entity = property(lambda s: s.entities[0])
 
-    def __init__(self):
-        self.comments = dict()
+    def __init__(self, filepath: str, archive=None, code_page=None):
+        super().__init__(filepath, archive, code_page)
         self.entities = list()
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} {len(self.entities)} entities>"
+        descriptor = f'"{self.filename}" {len(self.entities)} entities'
+        return f"<{self.__class__.__name__} {descriptor} @ 0x{id(self):016X}>"
 
     def search(self, **search: Dict[str, str]) -> List[Entity]:
         """Search for entities by key-values; e.g. .search(key=value) -> [{"key": value, ...}, ...]"""
-        return [e for e in self.entities if all([e.get(k, "") == v for k, v in search.items()])]
+        return [
+            entity
+            for entity in self.entities
+            if all([
+                entity.get(key, "") == value
+                for key, value in search.items()])]
 
     def entities_by_classname(self) -> Dict[str, List[Entity]]:
         out = defaultdict(str)
         for entity in self.entities:
             out[entity.classname].append(entity)
         return dict(out)
-
-    def save_as(self, filename: str):
-        raise NotImplementedError()
