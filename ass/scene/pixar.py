@@ -168,6 +168,21 @@ class Usd(base.SceneDescription, breki.FriendlyHybridFile):
             out.extend(prim.as_lines())
         return out
 
+    @classmethod
+    def identify(cls, filepath: str, stream: base.ByteStream) -> base.DataType:
+        type_ = super().identify(filepath, stream)
+        if type_ == breki.DataType.EITHER:
+            stream.seek(0)
+            magic = stream.read(8)
+            if magic == b"PXR-USDC":
+                type_ = breki.DataType.BINARY
+            elif magic[:4] == b"PK\x03\x04":
+                raise RuntimeError(
+                    "cannot open .usdz directly; use .from_archive() instead")
+            else:  # most likely usda
+                type_ = breki.DataType.TEXT
+        return type_
+
     def parse_binary(self):
         if self.is_parsed:
             return
