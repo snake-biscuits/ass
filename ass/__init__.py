@@ -1,14 +1,11 @@
 __all__ = [
-    "editor", "geometry", "physics", "scene",
-    "texture", "vector", "quaternion"]
+    "geometry", "physics", "scene", "vector", "quaternion"]
 
-from . import editor
 from . import geometry
 # NOTE: might break material out into it's own module
 # -- will see once we're interacting w/ bite
 from . import physics
 from . import scene  # file formats
-from . import texture  # texture projection for editor
 from . import vector
 from . import quaternion
 
@@ -16,8 +13,7 @@ from . import quaternion
 # from . import viewer
 
 # TODO: expose classes
-# -- physics: AABB etc.
-# -- geometry: Vertex, Polygon, Mesh, Model, Material
-# -- vector: Vec3, Vec2 (rename!)
+# -- geometry: Material, Mesh, Model, Polygon, Vertex
+# -- physics: AABB, Brush, Plane
+# -- vector: Vec2, Vec3 (rename!)
 # -- quaternion: Quaternion
-# -- scene: pixar.Usd, wavefront.Obj, khronos.Gltf
