@@ -3,59 +3,6 @@
 copied from `utils_split.md` planning doc
 
 
-## `editor` tests
- - [ ] `base`
-   - [ ] `Brush`
-   - [ ] `BrushSide`
-   - [x] `Entity`
-   - [ ] `MapFile`
- - [ ] `common`
-   - [ ] `comment`
-   - [x] `double`
-   - [ ] `filepath`
-   - [ ] `integer`
-   - [ ] `key_value_pair`
-   - [ ] `point`
-   - [ ] `plane`
-   - [ ] `Plane`
-   - [ ] `TokenClass`
- - [ ] `id_software`
-   - [ ] `BrushSide`
-   - [ ] `QuakeMap`
- - [ ] `infinity_ward`
-   - [ ] `BrushSide`
-   - [ ] `CoD4Map`
-   - [ ] `Projection`
- - [ ] `valve`
-   - [ ] `map220`
-     - [ ] `BrushSide`
-     - [ ] `ProjectionAxis`
-     - [ ] `Valve220Map`
- - [ ] `valve`
-   - [ ] `vmf`
-     - [ ] `Brush`
-     - [ ] `BrushSide`
-     - [ ] `Entity`
-     - [ ] `Node`
-     - [ ] `ProjectionAxis`
-     - [ ] `Vmf`
-
-
-## Consume `abe`
-The first `s` in `ass` stands for Solids
-
-`ass` is handling Brushes, Entities & MapFiles now
-So what do we need `abe` for?
-
-actually, I think Solids is supposed to represent `physics`, not `editor`
-so `editor` can move to `abe` wholesale
-
-it doesn't really fit in with `ass` anyway
-
-`abe` can import `ass` for physics & geometry stuff
-(including `vector`)
-
-
 ## Planned Features
  * `ass[bpy]` Blender-specific tools
    - **for `io_import_rbsp` & `bbbb`**
@@ -77,3 +24,13 @@ it doesn't really fit in with `ass` anyway
      * HLSL
      * OSL
    - Combining shaders w/ variants (`.vcs` w/ `bish`)
+ * `bite.Material` support
+   - `bite` should extend `ass` w/ parsed file formats
+ * `khronos.Dae` (`model/vnd.collada+xml`)
+   - Originally created at Sony Computer Entertainment
+   - COLLADA DOM uses SCEA Shared Source License 1.0
+   - Wikipedia page is a good reference
+ * `blockbench.BBModel`
+   - `text/json` format used with Minecraft (Figura)
+ * pip extras
+   - `viewer` (same dependencies as `usdview`)
