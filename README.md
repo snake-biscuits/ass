@@ -8,27 +8,36 @@ Not to be confused with [assimp](https://github.com/assimp/assimp/)
 
 
 ## Features
-### Planned
- * `Material` update
-   - Shader Languages (OSL, GLSL, HLSL)
-   - Node Graphs (Blender, GlTF, USD)
- * `bite.Material` support
-   - `bite` should extend `ass` w/ parsed file formats
- * pip extras
-   - `openusd`
-     * `pixar.Usd.from_file`
-   - `bpy`
-     * `Material` -> Nodes
-     * `Model` -> Object & bmesh
- * `khronos.Dae` (`model/vnd.collada+xml`)
-   - Originally created at Sony Computer Entertainment
-   - COLLADA DOM uses SCEA Shared Source License 1.0
-   - Wikipedia page is a good reference
- * `blockbench.Model`
-   - or `ass.BBModel`
-   - `import blockbench.Model as BBModel`
- * pip extras
-   - `viewer` (same dependencies as `usdview`)
+### Solids
+ * `physics`
+   - `AABB`
+   - `Brush`
+   - `Plane`
+ * `vector`
+   - `vec2`
+   - `vec3`
+ * `quaternion.Quaternion`
+
+### Scenes
+File format parsers for 3D models
+
+| extension | parser | MIME type | read | write |
+| :--- | :--- | :--- | :--- | :--- |
+| `*.bbmodel` | `blockbench.BBModel` | `text/json` | :-1: | :-1: |
+| `*.dae` | `khronos.Dae` | `model/vnd.collada+xml` | :-1: | :-1: |
+| `*.gltf` | `khronos.Gltf` | `model/gltf+json` | :-1: | :+1: |
+| `*.glb` | `khronos.Gltf` | `model/gltf-binary` | :-1: | :-1: |
+| `*.usd` | `pixar.Usd` | | | |
+| `*.usda` | `pixar.Usd` | `model/vnd.usda` | :-1: | :+1: |
+| `*.usdc` | `pixar.Usd` | | :-1: | :-1: |
+| `*.usdz` | `pixar.Usd` | `model/vnd.usdz+zip` | | |
+| `*.obj` | `wavefront.Obj` | `model/obj` | :+1: | :+1: |
+
+> `*.usd` extension can be used for either `*.usda` or `*.usdc`
+
+> `*.usdz` can be opened with `pixar.Usd.from_archive`
+
+> `blockbench.BBModel` & `khronos.Dae` are planned
 
 
 ## Installation
