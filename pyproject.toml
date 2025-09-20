@@ -28,7 +28,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 dependencies = [
-    "breki @ git+ssh://git@github.com/snake-biscuits/breki.git"
+    "breki @ git+https://git@github.com/snake-biscuits/breki.git"
 ]
 
 
