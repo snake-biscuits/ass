@@ -105,6 +105,7 @@ class Polygon(core.Struct):  # dtPoly
         "center": vector.vec3}
 
 
+# THE CULPRIT
 class Link(core.Struct):  # dtLink
     """r2recast/Detour/Include/DetourNavMesh.h:211"""
     neighbour: int  # 32-bit! not 64!
@@ -122,12 +123,9 @@ class Link(core.Struct):  # dtLink
 class DetailMesh(core.Struct):  # dtPolyDetail
     """r2recast/Detour/Include/DetourNavMesh.h:200"""
     _format = "2I2B"
-    # __slots__ = [
-    #     "first_vertex", "first_triangle",
-    #     "num_vertices", "num_triangles"]
     __slots__ = [
-        "first_triangle", "first_vertex",
-        "num_triangles", "num_vertices"]
+        "first_vertex", "first_triangle",
+        "num_vertices", "num_triangles"]
 
 
 class DetailTriangle(core.Struct):
@@ -136,6 +134,7 @@ class DetailTriangle(core.Struct):
     # if index < poly.num_vertices: polygon.vertices[index]
     # else: polygon.detail_vertices[index - polygon.num_vertices]
     edge_flags: int  # 2:2:2 bitfield (top 2 bits unused)
+    # ^ all correct values (1, 4, 16 & combinations thereof)
 
     _format = "4B"
     __slots__ = ["indices", "edge_flags"]
@@ -191,41 +190,37 @@ class Tile:  # dtMeshTile
     connections: List[Connection]
 
     def as_model(self) -> geometry.Model:
+        # r2recast/DebugUtils/Source/DetourDebugDraw.cpp:49
+        # r2recast/Detour/Source/DetourNavMesh.cpp:630
         normal = vector.vec3(z=+1)
         base_vertices = [
             geometry.Vertex(pos, normal)
             for pos in self.vertices]
-        detail_vertices = [
-            geometry.Vertex(pos, normal)
-            for pos in self.detail_vertices]
+        # detail_vertices = [
+        #     geometry.Vertex(pos, normal)
+        #     for pos in self.detail_vertices]
         polygons = list()
         if len(self.polygons) != len(self.detail_meshes):
             raise AssertionError(  # 99% confident
                 f"{len(self.polygons)=}, {len(self.detail_meshes)=}")
-        for poly, dm in zip(self.polygons, self.detail_meshes):
-            # print(f"{poly=}")
-            # print(f"{dm=}")
-            # local detail vertices slice
-            start = dm.first_vertex
-            end = start + dm.num_vertices
-            local_vertices = detail_vertices[start:end]
-            # triangles
-            start = dm.first_triangle
-            end = start + dm.num_triangles
-            for triangle in self.detail_triangles[start:end]:
-                face = list()
-                for index in triangle.indices:
-                    if index < poly.num_vertices:
-                        face.append(base_vertices[index])
-                    else:
-                        print(", ".join([
-                            f"{index=}",
-                            f"{poly.num_vertices=}",
-                            f"{len(local_vertices)=}",
-                            f"{dm=}"]))
-                        index -= poly.num_vertices
-                        face.append(local_vertices[index])
-                polygons.append(face)
+        polygons = [
+            geometry.Polygon([
+                base_vertices[i]
+                for i in range(polygon.num_vertices)])
+            for polygon in self.polygons]
+        # detail mesh hell
+        # for poly, dm in zip(self.polygons, self.detail_meshes):
+        #     start = dm.first_triangle
+        #     end = start + dm.num_triangles
+        #     for triangle in self.detail_triangles[start:end]:
+        #         face = list()
+        #         for index in triangle.indices:
+        #             if index < poly.num_vertices:
+        #                 face.append(base_vertices[index])
+        #             else:
+        #                 index = index - poly.num_vertices + dm.first_vertex
+        #                 face.append(detail_vertices[index])
+        #         polygons.append(face)
         return geometry.Model([geometry.Mesh(polygons=polygons)])
 
     @classmethod
@@ -241,45 +236,34 @@ class Tile:  # dtMeshTile
         assert out.header.magic == b"VAND", out.header.magic
         assert out.header.version == 13, out.header.version
         # data
-        print("-==- TILE DATA -==-")
-        print(f"{stream.tell()=} after header ({stream.tell() % 4})")
         out.vertices = [
             vector.vec3(*binary.read_struct(stream, "3f"))
             for i in range(out.header.num_vertices)]
-        print(f"{stream.tell()=} after vertices ({stream.tell() % 4})")
         out.polygons = [
             Polygon.from_stream(stream)
             for i in range(out.header.num_polygons)]
-        print(f"{stream.tell()=} after polygons ({stream.tell() % 4})")
         out.per_poly = [
             stream.read(out.header.per_poly_size * 4)
             for i in range(out.header.num_polygons)]
-        print(f"{stream.tell()=} after per_poly ({stream.tell() % 4})")
         out.links = [
             Link.from_stream(stream)
             for i in range(out.header.num_links)]
         out.detail_meshes = [
             DetailMesh.from_stream(stream)
             for i in range(out.header.detail.num_meshes)]
-        print(f"{stream.tell()=} after detail_meshes ({stream.tell() % 4})")
         stream.seek(4 - (stream.tell() % 4), 1)  # align to 4 byte boundary
-        print(f"{stream.tell()=} after detail_meshes + realign")
         out.detail_vertices = [
             vector.vec3(*binary.read_struct(stream, "3f"))
             for i in range(out.header.detail.num_vertices)]
-        print(f"{stream.tell()=} after detail_vertices ({stream.tell() % 4})")
         out.detail_triangles = [
             DetailTriangle.from_stream(stream)
             for i in range(out.header.detail.num_triangles)]
-        print(f"{stream.tell()=} after triangles ({stream.tell() % 4})")
         out.bounds_tree = [
             BoundsNode.from_stream(stream)
             for i in range(out.header.num_bounds_nodes)]
-        print(f"{stream.tell()=} after bounds_tree ({stream.tell() % 4})")
         out.connections = [
             Connection.from_stream(stream)
             for i in range(out.header.num_connections)]
-        print(f"{stream.tell()=} after connections ({stream.tell() % 4})")
         # NOTE: should've crashed by now if we ran out of data
         # -- but did we read all the data?
         tail = stream.read()
@@ -287,8 +271,8 @@ class Tile:  # dtMeshTile
             # multiple of 4 now
             # not per_poly
             print(f"! TAIL ! {out.header.position=}, {len(tail)=}")
-            print(f"{len(tail) / 4}")
-            print(f"{out.header=}")
+            # print(f"{len(tail) / 4}")
+            # print(f"{out.header=}")
         return out
 
 
@@ -316,14 +300,25 @@ class NavMesh(base.SceneDescription, breki.BinaryFile):
         return f"<{self.__class__.__name__} {descriptor} @ 0x{id(self):016X}>"
 
     def tile_model(self, pos) -> geometry.Model:
+        # NOTE: origin math is probably wrong, lots of assumptions
+        # -- doesn't line up with geo well either
         tile = self.tiles[pos]
         x, y, layer = tile.header.position
         tile_size = self.header.params.tile_size
         x = x * tile_size.width
         y = y * tile_size.height
         # z = tile.position.layer *? +? ???
+        tile_origin = vector.vec3(x, y)
         model = tile.as_model()
-        model.origin = self.header.params.origin + vector.vec3(x, y)
+        # keep global vertex positions, but set origins
+        model = geometry.Model([
+            geometry.Mesh(mesh.material, [
+                geometry.Polygon([
+                    geometry.Vertex(vertex.position - tile_origin, vertex.normal)
+                    for vertex in polygon.vertices])
+                for polygon in mesh.polygons])
+            for mesh in model.meshes])
+        model.origin = tile_origin  # + self.header.params.origin
         return model
 
     def parse(self):
