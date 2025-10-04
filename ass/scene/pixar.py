@@ -148,6 +148,8 @@ class Usd(base.SceneDescription, breki.FriendlyHybridFile):
             upAxis="Z")
         self.prims = list()
 
+    as_bytes = breki.ParsedFile.as_bytes
+
     @parse_first
     def as_lines(self) -> List[str]:
         # generate prims if none exist & have models
@@ -245,7 +247,7 @@ class Usd(base.SceneDescription, breki.FriendlyHybridFile):
                         Property("uniform token", "elementType", "face"),
                         Property("uniform token", "familyName", "materialBind"),
                         Property("int[]", "indices", [*range(start, start + len(polygons))]),
-                        Property("rel", "material:binding", "</_materials/sanitise>")]))
+                        Property("rel", "material:binding", f"</_materials/{sanitise(material.name)}>")]))
                 start += len(polygons)
             # model prim
             model_prims.append(Prim(
