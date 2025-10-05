@@ -15,13 +15,17 @@ from breki.files.parsed import parse_first
 reference_pattern = re.compile(r"@.*@(<.*>)?|<.*>")
 
 
-# TODO: could we replicate material paths?
-# -- how would blender interpret them?
-def sanitise(material_name: str) -> str:
-    material_name = material_name.replace("\\", "/")
+def sanitise(name: str) -> str:
     for bad_char in ".{}-":
-        material_name = material_name.replace(bad_char, "_")
-    return material_name.rpartition("/")[-1] if "/" in material_name else material_name
+        name = name.replace(bad_char, "_")
+    if name[0].isdigit():  # no leading digits
+        name = f"_{name}"
+    name = name.replace("\\", "/")
+    if "/" in name:  # "foliage/tree01" -> "tree01" etc.
+        name = name.rpartition("/")[-1]
+    # TODO: use nested nodes instead of trimming
+    # NOTE: blender might create namespace collision
+    return name
 
 
 def usd_repr(value: Any) -> str:
@@ -50,7 +54,7 @@ class Prim:
 
     def __init__(self, type_, name, metadata={}, properties=[], children=[]):
         self.type_ = type_
-        self.name = name
+        self.name = sanitise(name)
         self.metadata = metadata
         self.properties = properties
         self.children = children
