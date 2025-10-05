@@ -1,4 +1,3 @@
-# R2Northstar/mods/Northstar.CustomServers/mod/maps/navmesh/mp_coliseum_small.nm
 """for r2recast .nm files (Titanfall 2 NPC Navigation Meshes)"""
 from __future__ import annotations
 import io
@@ -226,7 +225,6 @@ class Tile:  # dtMeshTile
     @classmethod
     def from_bytes(cls, raw_tile: bytes) -> Tile:
         return cls.from_stream(io.BytesIO(raw_tile))
-        # TODO: verify we read all the bytes
 
     @classmethod
     def from_stream(cls, stream: io.BytesIO) -> Tile:
@@ -235,44 +233,54 @@ class Tile:  # dtMeshTile
         out.header = TileHeader.from_stream(stream)
         assert out.header.magic == b"VAND", out.header.magic
         assert out.header.version == 13, out.header.version
+
+        def align_4():
+            stream.seek((4 - (stream.tell() % 4)) % 4, 1)
+
         # data
         out.vertices = [
             vector.vec3(*binary.read_struct(stream, "3f"))
             for i in range(out.header.num_vertices)]
+        align_4()
         out.polygons = [
             Polygon.from_stream(stream)
             for i in range(out.header.num_polygons)]
+        align_4()
         out.per_poly = [
             stream.read(out.header.per_poly_size * 4)
             for i in range(out.header.num_polygons)]
+        align_4()
         out.links = [
             Link.from_stream(stream)
             for i in range(out.header.num_links)]
+        align_4()
         out.detail_meshes = [
             DetailMesh.from_stream(stream)
             for i in range(out.header.detail.num_meshes)]
-        stream.seek(4 - (stream.tell() % 4), 1)  # align to 4 byte boundary
+        align_4()
         out.detail_vertices = [
             vector.vec3(*binary.read_struct(stream, "3f"))
             for i in range(out.header.detail.num_vertices)]
+        align_4()
         out.detail_triangles = [
             DetailTriangle.from_stream(stream)
             for i in range(out.header.detail.num_triangles)]
+        align_4()
         out.bounds_tree = [
             BoundsNode.from_stream(stream)
             for i in range(out.header.num_bounds_nodes)]
+        align_4()
         out.connections = [
             Connection.from_stream(stream)
             for i in range(out.header.num_connections)]
+        align_4()
         # NOTE: should've crashed by now if we ran out of data
         # -- but did we read all the data?
-        tail = stream.read()
-        if len(tail) > 0:
-            # multiple of 4 now
-            # not per_poly
-            print(f"! TAIL ! {out.header.position=}, {len(tail)=}")
-            # print(f"{len(tail) / 4}")
-            # print(f"{out.header=}")
+        out.tail = stream.read()
+        if len(out.tail) > 0:
+            print(f"! TAIL ! {out.header.position}")
+            # binary.xxd(out.tail)
+            # print()
         return out
 
 
@@ -292,11 +300,7 @@ class NavMesh(base.SceneDescription, breki.BinaryFile):
 
     @parse_first
     def __repr__(self) -> str:
-        descriptor = " ".join([
-            f'"{self.filename}"',
-            f"{len(self.tiles)} tiles",
-            # f"{len(self.models)} models",
-            ])
+        descriptor = f'"{self.filename}" {len(self.tiles)} tiles'
         return f"<{self.__class__.__name__} {descriptor} @ 0x{id(self):016X}>"
 
     def tile_model(self, pos) -> geometry.Model:
@@ -310,11 +314,14 @@ class NavMesh(base.SceneDescription, breki.BinaryFile):
         # z = tile.position.layer *? +? ???
         tile_origin = vector.vec3(x, y)
         model = tile.as_model()
-        # keep global vertex positions, but set origins
+        # corrects wierd spikes, but messes up .usd layout
+        # NOTE: wierd spikes occur on tiles w/ tailing data
         model = geometry.Model([
             geometry.Mesh(mesh.material, [
                 geometry.Polygon([
-                    geometry.Vertex(vertex.position - tile_origin, vertex.normal)
+                    geometry.Vertex(
+                        vertex.position - tile_origin,
+                        vertex.normal)
                     for vertex in polygon.vertices])
                 for polygon in mesh.polygons])
             for mesh in model.meshes])
@@ -340,7 +347,10 @@ class NavMesh(base.SceneDescription, breki.BinaryFile):
             assert tile_pos not in self.tiles
             self.tile_refs[tile_ref] = tile_pos
             self.tiles[tile_pos] = tile
-        # that's the whole file!
+        # NOTE: there's still some data after this point
+        # -- I ain't parsing all that
+        self.tail = self.stream.read()
+        # tiles -> models
         self.models = {
-            f"{ref:08X}": self.tile_model(pos)
+            f"Tile.{pos.x}.{pos.y}.{ref:08X}": self.tile_model(pos)
             for ref, pos in self.tile_refs.items()}
