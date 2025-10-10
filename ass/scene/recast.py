@@ -1,6 +1,7 @@
 """for r2recast .nm files (Titanfall 2 NPC Navigation Meshes)"""
 from __future__ import annotations
 import io
+import struct
 from typing import Dict, List, Tuple
 
 from .. import geometry
@@ -104,7 +105,6 @@ class Polygon(core.Struct):  # dtPoly
         "center": vector.vec3}
 
 
-# THE CULPRIT
 class Link(core.Struct):  # dtLink
     """r2recast/Detour/Include/DetourNavMesh.h:211"""
     neighbour: int  # 32-bit! not 64!
@@ -152,6 +152,12 @@ class BoundsNode(core.Struct):  # dtBVNode
     __slots__ = ["mins", "maxs", "index"]
     _arrays = {"mins": [*"xyz"], "maxs": [*"xyz"]}
 
+    def __repr__(self) -> str:
+        mins = f"({self.mins.x}, {self.mins.y}, {self.mins.y})"
+        maxs = f"({self.maxs.x}, {self.maxs.y}, {self.maxs.y})"
+        index = f"0x{self.index:08X}"
+        return f"BoundsNode({mins}, {maxs}, {index})"
+
 
 class Connection(core.Struct):  # dtOffMeshConnection
     """r2recast/Detour/Include/DetourNavMesh.h:234"""
@@ -187,6 +193,11 @@ class Tile:  # dtMeshTile
     detail_triangles: List[DetailTriangle]
     bounds_tree: List[BoundsNode]
     connections: List[Connection]
+
+    def __repr__(self) -> str:
+        position = self.header.position
+        pos = f"{position.x}.{position.y}.{position.layer}"
+        return f"<Tile {pos} {len(self.polygons)} polygons>"
 
     def as_model(self) -> geometry.Model:
         # r2recast/DebugUtils/Source/DetourDebugDraw.cpp:49
@@ -265,6 +276,7 @@ class Tile:  # dtMeshTile
         out.detail_triangles = [
             DetailTriangle.from_stream(stream)
             for i in range(out.header.detail.num_triangles)]
+        # bleeding into bounds tree, bad counts?
         align_4()
         out.bounds_tree = [
             BoundsNode.from_stream(stream)
@@ -278,10 +290,26 @@ class Tile:  # dtMeshTile
         # -- but did we read all the data?
         out.tail = stream.read()
         if len(out.tail) > 0:
-            print(f"! TAIL ! {out.header.position}")
-            # binary.xxd(out.tail)
-            # print()
+            position = out.header.position
+            pos = f"{position.x}.{position.y}.{position.layer}"
+            print(f"! TAIL @ {pos}")
         return out
+
+    def as_bytes(self) -> bytes:
+        out = [
+            self.header.as_bytes(),
+            *[struct.pack("3f", *vertex) for vertex in self.vertices],
+            *[polygon.as_bytes() for polygon in self.polygons],
+            *self.per_poly,
+            *[link.as_bytes() for link in self.links],
+            *[mesh.as_bytes() for mesh in self.detail_meshes],
+            b"\x00\x00" if len(self.detail_meshes) % 2 == 1 else b"",  # pad
+            *[struct.pack("3f", *vertex) for vertex in self.detail_vertices],
+            *[tri.as_bytes() for tri in self.detail_triangles],
+            *[node.as_bytes() for node in self.bounds_tree],
+            *[conn.as_bytes() for conn in self.connections],
+            self.tail]
+        return b"".join(out)
 
 
 class NavMesh(base.SceneDescription, breki.BinaryFile):
