@@ -1,10 +1,11 @@
 __all__ = [
-    "geometry", "physics", "scene", "vector", "quaternion"]
+    "geometry", "physics", "physics2d", "scene", "vector", "quaternion"]
 
 from . import geometry
 # NOTE: might break material out into it's own module
 # -- will see once we're interacting w/ bite
 from . import physics
+from . import physics2d
 from . import scene  # file formats
 from . import vector
 from . import quaternion
@@ -15,5 +16,6 @@ from . import quaternion
 # TODO: expose classes
 # -- geometry: Material, Mesh, Model, Polygon, Vertex
 # -- physics: AABB, Brush, Plane
+# -- physics2d: AABB as AABB2D, Circle
 # -- vector: Vec2, Vec3 (rename!)
 # -- quaternion: Quaternion
