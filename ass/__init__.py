@@ -1,10 +1,13 @@
 __all__ = [
-    "geometry", "physics", "physics2d", "scene", "vector", "quaternion",
+    "geometry", "physics", "physics2d", "vector", "quaternion",
     "Material", "Mesh", "Model", "Polygon", "Vertex",
     "AABB", "Brush", "Plane",
     "AABB2D", "Circle",
     "Vec2", "Vec3",
-    "Quaternion"]
+    "Quaternion",
+    "scene",
+    "ModelList", "SceneDescription",
+    "Gltf", "NavMesh", "Obj", "Usd"]
 
 # modules
 from . import geometry
@@ -16,7 +19,7 @@ from . import scene  # file formats
 from . import vector
 from . import quaternion
 
-# classes
+# utils
 from .geometry import (
     Material,
     Mesh,
@@ -32,3 +35,12 @@ from .physics2d import Circle
 from .vector import vec2 as Vec2  # TODO: rename
 from .vector import vec3 as Vec3  # TODO: rename
 from .quaternion import Quaternion
+
+# SceneDescriptions
+from .scene import (
+    ModelList,
+    SceneDescription)
+from .scene.khronos import Gltf
+from .scene.pixar import Usd
+from .scene.recast import NavMesh
+from .scene.wavefront import Obj
