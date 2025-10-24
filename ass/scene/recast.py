@@ -204,33 +204,40 @@ class Tile:  # dtMeshTile
         # r2recast/Detour/Source/DetourNavMesh.cpp:630
         normal = vector.vec3(z=+1)
         base_vertices = [
-            geometry.Vertex(pos, normal)
+            geometry.Vertex(pos, normal, colour=(0, 0, 1, 1))
             for pos in self.vertices]
-        # detail_vertices = [
-        #     geometry.Vertex(pos, normal)
-        #     for pos in self.detail_vertices]
-        polygons = list()
-        if len(self.polygons) != len(self.detail_meshes):
-            raise AssertionError(  # 99% confident
-                f"{len(self.polygons)=}, {len(self.detail_meshes)=}")
         polygons = [
             geometry.Polygon([
                 base_vertices[i]
                 for i in range(polygon.num_vertices)])
             for polygon in self.polygons]
         # detail mesh hell
-        # for poly, dm in zip(self.polygons, self.detail_meshes):
-        #     start = dm.first_triangle
-        #     end = start + dm.num_triangles
-        #     for triangle in self.detail_triangles[start:end]:
-        #         face = list()
-        #         for index in triangle.indices:
-        #             if index < poly.num_vertices:
-        #                 face.append(base_vertices[index])
-        #             else:
-        #                 index = index - poly.num_vertices + dm.first_vertex
-        #                 face.append(detail_vertices[index])
-        #         polygons.append(face)
+        detail_vertices = [
+            geometry.Vertex(pos, normal, colour=(0, 1, 0, 1))
+            for pos in self.detail_vertices]
+        polygons = list()
+        assert len(self.polygons) == len(self.detail_meshes)
+        for poly, dm in zip(self.polygons, self.detail_meshes):
+            start = dm.first_triangle
+            end = start + dm.num_triangles
+            for triangle in self.detail_triangles[start:end]:
+                face = list()
+                for index in triangle.indices:
+                    if index < poly.num_vertices:
+                        face.append(base_vertices[index])
+                    else:
+                        index = dm.first_vertex + index - poly.num_vertices
+                        if index > len(detail_vertices) or len(detail_vertices) == 0:
+                            print(f"{poly=}")
+                            vertex = geometry.Vertex(
+                                poly.center,
+                                normal,
+                                colour=(1, 0, 0, 1))  # red
+                            face.append(vertex)
+                        else:
+                            face.append(detail_vertices[index])
+                assert len(face) == 3
+                polygons.append(geometry.Polygon(face))
         return geometry.Model([geometry.Mesh(polygons=polygons)])
 
     @classmethod
