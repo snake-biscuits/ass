@@ -33,7 +33,7 @@ class Vertex:
     # uv1: vector.vec2  # lightmap
     colour: Tuple[float, float, float, float]  # rgba [0.0 -> 1.0]
 
-    def __init__(self, position, normal, *uvs, colour=(0.0,) * 4):
+    def __init__(self, position, normal, *uvs, colour=(0, 0, 0, 1)):
         self.position = vector.vec3(*position)
         self.normal = vector.vec3(*normal)
         self.uv = [vector.vec2(*uv) for uv in uvs]

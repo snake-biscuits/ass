@@ -279,8 +279,7 @@ class Usd(base.SceneDescription, breki.FriendlyHybridFile):
                                 tuple(vertex.colour[:3]) for vertex in vertices],
                                 interpolation="vertex"),
                             Property("float[]", "primvars:displayOpacity", [
-                                1 - (vertex.colour[3] / 255)
-                                for vertex in vertices],
+                                1 - vertex.colour[3] for vertex in vertices],
                                 interpolation="vertex")],
                         children=material_bindings)]))
         # material prims
