@@ -140,6 +140,9 @@ class Material:
         # TODO: path
         # TODO: asset type (rpak.matl.wld, .vmt, .wad, .shader etc.)
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.name!r})"
+
     def __eq__(self, other: Material) -> bool:
         if isinstance(other, Material):
             return hash(self) == hash(other)
@@ -147,9 +150,6 @@ class Material:
 
     def __hash__(self) -> int:
         return hash((self.name,))
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({self.name!r})"
 
 
 class Mesh:
@@ -163,6 +163,9 @@ class Mesh:
     def __repr__(self) -> str:
         material = self.material
         return f"<{self.__class__.__name__} {len(self.polygons)} polygons, {material=!r}>"
+
+    def __iter__(self):
+        return iter(self.polygons)
 
 
 class Model:
@@ -186,6 +189,9 @@ class Model:
         angles = self.angles
         scale = self.scale
         return f"<{self.__class__.__name__} {len(self.meshes)} meshes, {origin=!r}, {angles=!r}, {scale=!r}>"
+
+    def __iter__(self):
+        return iter(self.meshes)
 
     @staticmethod
     def merge_meshes(meshes: List[Mesh]) -> List[Mesh]:
