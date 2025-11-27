@@ -1,6 +1,9 @@
 # using .bt (010 Hex Binary Template) reversed by MasterLiberty & others
-# also used Source SDK public/src/studio.h for reference
+# Source SDK 2013 public/src/studio.h
+# snake-biscuits/titanfall2_mdl_converter (private, incomplete)
+# headassbtw/mdlshit (mostly complete, no structs)
 from __future__ import annotations
+import os
 from typing import Dict, List
 
 from .. import geometry
@@ -33,11 +36,16 @@ class MdlHeaderv53(core.Struct):
     ...
     # v53 header2
     unknown_2: List[int]  # sizes / indices?
-    vvd_offset: int  # offset of .vvd data; 0 if none
-    name_offset: int  # 0 if none
-    phy_offset: int  # offset of .phy data; 0 if none
-    unknown_3: List[int]
     vtx_offset: int  # offset of .vtx data; 0 if none
+    vvd_offset: int  # offset of .vvd data; 0 if none
+    vvc_offset: int  # offset of .vvc data; 0 if none
+    phy_offset: int  # offset of .phy data; 0 if none
+    vtx_length: int
+    vvd_length: int
+    vvc_length: int
+    phy_length: int
+    unknown_3: List[int]
+    vtx_offset2: int  # again, idk why
 
     __slots__ = [
         "magic", "version", "checksum", "name_copy_offset", "name", "filesize",
@@ -74,15 +82,18 @@ class MdlHeaderv53(core.Struct):
         "unused", "fade_distance", "deprecated_num_flex_controller_ui",
         "deprecated_flex_controller_ui_index", "vert_anim_fixed_point_scale",
         "surfaceprop_lookup", "studiohdr2_index", "source_filename_offset",
-        "unknown_2", "vvd_offset", "name_offset", "phy_offset",
-        "unknown_3", "vtx_offset"]
+        "unknown_2",
+        "vtx_offset", "vvd_offset", "vvc_offset", "phy_offset",
+        "vtx_length", "vvd_length", "vvc_length", "phy_length",
+        # num_unknown_3, unknown_3_index, ?, ?, 240 null bytes
+        "unknown_3", "vtx_offset2"]
     _format = "4s3I64sI18f44IfI10I4Bf2If19I"
     _arrays = {
         "eye_position": [*"xyz"],
         "illumination_position": [*"xyz"],
         "hull": {"min": [*"xyz"], "max": [*"xyz"]},
         "view": {"min": [*"xyz"], "max": [*"xyz"]},
-        "unknown_2": 5, "unknown_3": 7}
+        "unknown_2": 4, "unknown_3": 3}
     _classes = {
         "eye_position": vector.vec3,
         "illumination_position": vector.vec3,
@@ -90,7 +101,7 @@ class MdlHeaderv53(core.Struct):
         "view.min": vector.vec3, "view.max": vector.vec3}
 
 
-class Mdl(base.SceneDescription, breki.BinaryFile):
+class Mdl(base.SceneDescription, breki.FriendlyBinaryFile):
     code_page = breki.CodePage("latin_1", "strict")
     exts = ["*.mdl"]
     models: Dict[str, geometry.Model]
@@ -107,6 +118,16 @@ class Mdl(base.SceneDescription, breki.BinaryFile):
         descriptor = f'"{self.name}" {len(self.models)} models'
         return f"<{self.__class__.__name__} {descriptor} @ 0x{id(self):016X}>"
 
+    # TODO: automatically convert friends to BinaryFile subclasses
+    # -- can extend .made_friends()
+
+    @property
+    def friend_patterns(self) -> Dict[str, breki.DataType]:
+        base_name = os.path.splitext(self.filename)[0]
+        return {
+            f"{base_name}.{ext}": breki.DataType.BINARY
+            for ext in ("phy", "vtx", "vvc", "vvd")}
+
     def parse(self):
         if self.is_parsed:
             return
@@ -119,8 +140,11 @@ class Mdl(base.SceneDescription, breki.BinaryFile):
         # TODO: accept multiple versions, not just Titanfall2's format
         assert self.header.filesize == self.size
         self.name = self.code_page.decode(self.header.name.rstrip(b"\0"))
+
         # TODO: model data -> self.models
         ...
+        # NOTE: texture dirs might be structs
+        # -- first int is an absolute offset into .mdl strings table
         # textures
         self.stream.seek(self.header.texture_index)
         texture_structs = [
@@ -129,5 +153,34 @@ class Mdl(base.SceneDescription, breki.BinaryFile):
         for offset, tex_struct in texture_structs:
             self.stream.seek(offset + tex_struct.relative_offset)
             self.textures.append(binary.read_str(self.stream, *self.code_page))
-        # NOTE: texture dirs might also be a struct
-        # -- first int is an absolute offset into .mdl strings table
+
+        # expose files combined into .mdl
+        vtx_filename = self.extract_internal("vtx")
+        vvd_filename = self.extract_internal("vvd")
+        vvc_filename = self.extract_internal("vvc")
+        phy_filename = self.extract_internal("phy")
+
+        if vtx_filename is None or vvd_filename is None:
+            raise RuntimeError("mdl has no mesh data")
+
+        # TODO: parse extra files & validate checksums
+
+        # ignore .vvd & .phy data
+        del vvc_filename
+        del phy_filename
+
+    def extract_internal(self, ext: str):
+        offset = getattr(self.header, f"{ext}_offset")
+        length = getattr(self.header, f"{ext}_length")
+        if (offset, length) == (0, 0):
+            return None  # no data to extract
+        assert offset + length <= self.size
+        self.stream.seek(offset)
+        raw_data = self.stream.read(length)
+        base_name = os.path.splitext(self.filename)[0]
+        filename = f"{base_name}.{ext}"
+        full_path = os.path.join(self.folder, filename)
+        # TODO: use BinaryFile subclass matched to ext
+        self.friends[filename] = breki.File.from_bytes(
+            full_path, raw_data, breki.DataType.BINARY, self.code_page)
+        return filename
