@@ -16,7 +16,7 @@ reference_pattern = re.compile(r"@.*@(<.*>)?|<.*>")
 
 
 def sanitise(name: str) -> str:
-    for bad_char in ".{}-":
+    for bad_char in ".{}- ":
         name = name.replace(bad_char, "_")
     if name[0].isdigit():  # no leading digits
         name = f"_{name}"
