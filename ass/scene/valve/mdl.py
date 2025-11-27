@@ -6,19 +6,18 @@ from __future__ import annotations
 import os
 from typing import Dict, List
 
-from .. import geometry
-from .. import vector
-from . import base
+from ... import geometry
+from ... import vector
+from .. import base
+from .vtx import Vtx
+from .vvd import Vvd
 
 import breki
 from breki import binary
 from breki import core
-# from breki.files.parsed import parse_first
 
 
 class Texturev53(core.Struct):
-    # texture_dir index in unknown?
-    # unused & used?
     __slots__ = ["relative_offset", "flags", "used", "unused"]
     _format = "11I"
     _arrays = {"unused": 8}
@@ -141,11 +140,9 @@ class Mdl(base.SceneDescription, breki.FriendlyBinaryFile):
         assert self.header.filesize == self.size
         self.name = self.code_page.decode(self.header.name.rstrip(b"\0"))
 
-        # TODO: model data -> self.models
-        ...
+        # textures
         # NOTE: texture dirs might be structs
         # -- first int is an absolute offset into .mdl strings table
-        # textures
         self.stream.seek(self.header.texture_index)
         texture_structs = [
             (self.stream.tell(), Texturev53.from_stream(self.stream))
@@ -154,20 +151,57 @@ class Mdl(base.SceneDescription, breki.FriendlyBinaryFile):
             self.stream.seek(offset + tex_struct.relative_offset)
             self.textures.append(binary.read_str(self.stream, *self.code_page))
 
-        # expose files combined into .mdl
+        # expose files contained inside .mdl
         vtx_filename = self.extract_internal("vtx")
         vvd_filename = self.extract_internal("vvd")
-        vvc_filename = self.extract_internal("vvc")
-        phy_filename = self.extract_internal("phy")
+        self.extract_internal("vvc")
+        self.extract_internal("phy")
 
         if vtx_filename is None or vvd_filename is None:
             raise RuntimeError("mdl has no mesh data")
 
-        # TODO: parse extra files & validate checksums
+        vtx = self.friends[vtx_filename]
+        vtx.parse()
+        assert self.header.checksum == vtx.header.checksum
 
-        # ignore .vvd & .phy data
-        del vvc_filename
-        del phy_filename
+        vvd = self.friends[vvd_filename]
+        vvd.parse()
+        assert self.header.checksum == vvd.header.checksum
+
+        # NOTE: this approach makes a lot of assumptions:
+        # -- one BodyPart, Model, StripGroup & Strip per Mesh
+        # -- indices are a valid triangle soup, rather than a series of strips
+        base_name = os.path.splitext(self.filename)[0]
+        strip_groups = {
+            index: strip_group
+            for index, offset, strip_group in vtx.strip_groups}
+        strips = {
+            index: strip
+            for index, offset, strip in vtx.strips}
+        for i in range(vvd.header.num_lods):
+            vertices = [
+                geometry.Vertex(v.position, v.normal, v.uv)
+                for v in vvd.lod[i]]
+            meshes = list()
+            offset = 0
+            for j, texture in enumerate(self.textures):
+                material = geometry.Material(texture.replace("\\", "/"))
+                # BodyPart, Model, Lod, Mesh, StripGroup)
+                index = (0, 0, i, j, 0)
+                strip_group = strip_groups[index]
+                vtx_vertices = vtx.vertices[index]
+                indices = vtx.indices[index]
+                polygons = list()
+                for k in range(0, strip_group.num_indices, 3):
+                    a = vtx_vertices[indices[k + 0]].vvd_index + offset
+                    b = vtx_vertices[indices[k + 1]].vvd_index + offset
+                    c = vtx_vertices[indices[k + 2]].vvd_index + offset
+                    polygons.append(geometry.Polygon([
+                        vertices[a], vertices[b], vertices[c]]))
+                meshes.append(geometry.Mesh(material, polygons))
+                offset += strips[(*index, 0)].num_vertices
+            self.models[f"{base_name}.Lod{i}"] = geometry.Model(meshes)
+        # NOTE: second mesh appears to be broken, wrong verts?
 
     def extract_internal(self, ext: str):
         offset = getattr(self.header, f"{ext}_offset")
@@ -180,7 +214,8 @@ class Mdl(base.SceneDescription, breki.FriendlyBinaryFile):
         base_name = os.path.splitext(self.filename)[0]
         filename = f"{base_name}.{ext}"
         full_path = os.path.join(self.folder, filename)
-        # TODO: use BinaryFile subclass matched to ext
-        self.friends[filename] = breki.File.from_bytes(
+        file_classes = {"vtx": Vtx, "vvd": Vvd}
+        file_class = file_classes.get(ext, breki.File)
+        self.friends[filename] = file_class.from_bytes(
             full_path, raw_data, breki.DataType.BINARY, self.code_page)
         return filename
