@@ -146,10 +146,11 @@ class Vtx(breki.BinaryFile):
                 self.stream, f"{strip_group.num_indices}H")
 
         self.body_parts = body_parts
-        self.models = models
-        self.lods = lods
-        self.meshes = meshes
-        self.strip_groups = strip_groups
-        self.strips = strips
+        self.models = {index: model for index, offset, model in models}
+        self.lods = {index: lod for index, offset, lod in lods}
+        self.meshes = {index: mesh for index, offset, mesh in meshes}
+        self.strip_groups = {index: sg for index, offset, sg in strip_groups}
+        self.strips = {index: strip for index, offset, strip in strips}
+        # NOTE: same indices as strip_group, List[type] values
         self.vertices = vertices
         self.indices = indices

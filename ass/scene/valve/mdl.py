@@ -104,14 +104,23 @@ class Mdl(base.SceneDescription, breki.FriendlyBinaryFile):
     code_page = breki.CodePage("latin_1", "strict")
     exts = ["*.mdl"]
     models: Dict[str, geometry.Model]
-    # metadata
+    # mdl metadata
     name: str
     textures: List[str]
+    # related files shortcuts
+    phy: breki.File
+    vtx: Vtx
+    vvc: breki.File
+    vvd: Vvd
 
     def __init__(self, filepath: str, archive=None, code_page=None):
         super().__init__(filepath, archive, code_page)
         self.name = "untitled.mdl"
         self.textures = list()
+        self.phy = None
+        self.vtx = None
+        self.vvc = None
+        self.vvd = None
 
     def __repr__(self) -> str:
         descriptor = f'"{self.name}" {len(self.models)} models'
@@ -152,45 +161,44 @@ class Mdl(base.SceneDescription, breki.FriendlyBinaryFile):
             self.textures.append(binary.read_str(self.stream, *self.code_page))
 
         # expose files contained inside .mdl
-        vtx_filename = self.extract_internal("vtx")
-        vvd_filename = self.extract_internal("vvd")
+        self.extract_internal("vtx")
+        self.extract_internal("vvd")
         self.extract_internal("vvc")
         self.extract_internal("phy")
 
-        if vtx_filename is None or vvd_filename is None:
+        if self.vtx is None or self.vvd is None:
             raise RuntimeError("mdl has no mesh data")
 
-        vtx = self.friends[vtx_filename]
-        vtx.parse()
-        assert self.header.checksum == vtx.header.checksum
+        self.vtx.parse()
+        assert self.header.checksum == self.vtx.header.checksum
 
-        vvd = self.friends[vvd_filename]
-        vvd.parse()
-        assert self.header.checksum == vvd.header.checksum
+        self.vvd.parse()
+        assert self.header.checksum == self.vvd.header.checksum
 
+        # TODO: defer parsing models until .models is touched
         # NOTE: this approach makes a lot of assumptions:
         # -- one BodyPart, Model, StripGroup & Strip per Mesh
         # -- indices are a valid triangle soup, rather than a series of strips
+        # NOTE: some LoDs will not use all materials
+        # -- assuming mesh index is material index
         base_name = os.path.splitext(self.filename)[0]
-        strip_groups = {
-            index: strip_group
-            for index, offset, strip_group in vtx.strip_groups}
-        strips = {
-            index: strip
-            for index, offset, strip in vtx.strips}
-        for i in range(vvd.header.num_lods):
+        for i in range(self.vvd.header.num_lods):
+            # NOTE: for blender uv.y is invertex
+            # -- y axis scale may be incorrect for non-square textures
             vertices = [
                 geometry.Vertex(v.position, v.normal, v.uv)
-                for v in vvd.lod[i]]
+                for v in self.vvd.lod[i]]
             meshes = list()
             offset = 0
             for j, texture in enumerate(self.textures):
                 material = geometry.Material(texture.replace("\\", "/"))
                 # BodyPart, Model, Lod, Mesh, StripGroup)
                 index = (0, 0, i, j, 0)
-                strip_group = strip_groups[index]
-                vtx_vertices = vtx.vertices[index]
-                indices = vtx.indices[index]
+                if index not in self.vtx.strip_groups:
+                    continue
+                strip_group = self.vtx.strip_groups[index]
+                vtx_vertices = self.vtx.vertices[index]
+                indices = self.vtx.indices[index]
                 polygons = list()
                 for k in range(0, strip_group.num_indices, 3):
                     a = vtx_vertices[indices[k + 0]].vvd_index + offset
@@ -199,9 +207,8 @@ class Mdl(base.SceneDescription, breki.FriendlyBinaryFile):
                     polygons.append(geometry.Polygon([
                         vertices[a], vertices[b], vertices[c]]))
                 meshes.append(geometry.Mesh(material, polygons))
-                offset += strips[(*index, 0)].num_vertices
-            self.models[f"{base_name}.Lod{i}"] = geometry.Model(meshes)
-        # NOTE: second mesh appears to be broken, wrong verts?
+                offset += self.vtx.strips[(*index, 0)].num_vertices
+            self.models[f"{base_name}.lod{i}"] = geometry.Model(meshes)
 
     def extract_internal(self, ext: str):
         offset = getattr(self.header, f"{ext}_offset")
@@ -218,4 +225,4 @@ class Mdl(base.SceneDescription, breki.FriendlyBinaryFile):
         file_class = file_classes.get(ext, breki.File)
         self.friends[filename] = file_class.from_bytes(
             full_path, raw_data, breki.DataType.BINARY, self.code_page)
-        return filename
+        setattr(self, ext, self.friends[filename])
