@@ -56,8 +56,14 @@ class Vvd(breki.BinaryFile):
         assert self.header.magic == b"IDSV"
         assert self.header.version == 4
 
+        assert self.header.num_lods >= 1
+        # LoD 0 should have the most vertices
+        for i in range(self.header.num_lods):
+            a = self.header.num_lod_vertices[i]
+            b = self.header.num_lod_vertices[i + 1] if i < 8 else 0
+            assert a >= b, f"LoD {i} isn't lower detail"
+
         self.stream.seek(self.header.vertex_index)
-        self.lod = [[
+        self.vertices = [
             Vertex.from_stream(self.stream)
-            for j in range(self.header.num_lod_vertices[i])]
-            for i in range(self.header.num_lods)]
+            for i in range(self.header.num_lod_vertices[0])]

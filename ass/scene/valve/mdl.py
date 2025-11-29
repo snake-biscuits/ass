@@ -181,13 +181,13 @@ class Mdl(base.SceneDescription, breki.FriendlyBinaryFile):
         # -- indices are a valid triangle soup, rather than a series of strips
         # NOTE: some LoDs will not use all materials
         # -- assuming mesh index is material index
+        vertices = [
+            geometry.Vertex(v.position, v.normal, v.uv)
+            for v in self.vvd.vertices]
         base_name = os.path.splitext(self.filename)[0]
         for i in range(self.vvd.header.num_lods):
             # NOTE: for blender uv.y is invertex
             # -- y axis scale may be incorrect for non-square textures
-            vertices = [
-                geometry.Vertex(v.position, v.normal, v.uv)
-                for v in self.vvd.lod[i]]
             meshes = list()
             offset = 0
             for j, texture in enumerate(self.textures):
