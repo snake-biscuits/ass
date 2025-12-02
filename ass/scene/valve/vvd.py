@@ -46,7 +46,7 @@ class Vertex(core.Struct):
 
 class Vvd(breki.BinaryFile):
     header: VvdHeader
-    lod: List[List[Vertex]]
+    vertices: List[Vertex]
 
     def parse(self):
         if self.is_parsed:
