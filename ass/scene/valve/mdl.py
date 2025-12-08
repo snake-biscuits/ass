@@ -181,15 +181,28 @@ class Mdl(base.SceneDescription, breki.FriendlyBinaryFile):
         # -- indices are a valid triangle soup, rather than a series of strips
         # NOTE: some LoDs will not use all materials
         # -- assuming mesh index is material index
+        # NOTE: for blender uv.y is inverted
+        # -- y axis scale may be incorrect for non-square textures
+
+        # vvd fixup -> vertex offsets
+        # assert len(self.vvd.fixups) >= 1
+        assert len(self.vvd.fixups) == len(self.vtx.vertices)
+        prev_lod = self.vvd.fixups[0].lod
+        offsets = [self.vvd.fixups[0].source_vertex_id]
+        for fixup in self.vvd.fixups[1:]:
+            if fixup.lod >= prev_lod:
+                offsets.append(fixup.source_vertex_id)
+            prev_lod = fixup.lod
+        del prev_lod
+
         vertices = [
             geometry.Vertex(v.position, v.normal, v.uv)
             for v in self.vvd.vertices]
+
         base_name = os.path.splitext(self.filename)[0]
+
         for i in range(self.vvd.header.num_lods):
-            # NOTE: for blender uv.y is invertex
-            # -- y axis scale may be incorrect for non-square textures
             meshes = list()
-            offset = 0
             for j, texture in enumerate(self.textures):
                 material = geometry.Material(texture.replace("\\", "/"))
                 # BodyPart, Model, Lod, Mesh, StripGroup)
@@ -200,6 +213,7 @@ class Mdl(base.SceneDescription, breki.FriendlyBinaryFile):
                 vtx_vertices = self.vtx.vertices[index]
                 indices = self.vtx.indices[index]
                 polygons = list()
+                offset = offsets[j]
                 for k in range(0, strip_group.num_indices, 3):
                     a = vtx_vertices[indices[k + 0]].vvd_index + offset
                     b = vtx_vertices[indices[k + 1]].vvd_index + offset
@@ -207,7 +221,6 @@ class Mdl(base.SceneDescription, breki.FriendlyBinaryFile):
                     polygons.append(geometry.Polygon([
                         vertices[a], vertices[b], vertices[c]]))
                 meshes.append(geometry.Mesh(material, polygons))
-                offset += self.vtx.strips[(*index, 0)].num_vertices
             self.models[f"{base_name}.lod{i}"] = geometry.Model(meshes)
 
     def extract_internal(self, ext: str):
