@@ -46,7 +46,14 @@ class Vertex(core.Struct):
 
 class Vvd(breki.BinaryFile):
     header: VvdHeader
+    fixups: List[Fixup]
     vertices: List[Vertex]
+
+    def __init__(self, filepath: str, archive=None, code_page=None):
+        super().__init__(filepath, archive, code_page)
+        self.header = None
+        self.fixups = list()
+        self.vertices = list()
 
     def parse(self):
         if self.is_parsed:
@@ -63,7 +70,15 @@ class Vvd(breki.BinaryFile):
             b = self.header.num_lod_vertices[i + 1] if i < 8 else 0
             assert a >= b, f"LoD {i} isn't lower detail"
 
+        self.stream.seek(self.header.fixup_index)
+        self.fixups = [
+            Fixup.from_stream(self.stream)
+            for i in range(self.header.num_fixups)]
+
         self.stream.seek(self.header.vertex_index)
         self.vertices = [
             Vertex.from_stream(self.stream)
             for i in range(self.header.num_lod_vertices[0])]
+
+        # NOTE: num_tangets = num_vertices
+        # -- 4x float (xyzw)
