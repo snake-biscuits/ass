@@ -184,8 +184,8 @@ class Mdl(base.SceneDescription, breki.FriendlyBinaryFile):
         # NOTE: for blender uv.y is inverted
         # -- y axis scale may be incorrect for non-square textures
 
-        # vvd fixup -> vertex offsets
-        if self.vvd.header.num_lods > 1:
+        # vertex offsets
+        if len(self.vvd.fixups) > 0:
             assert len(self.vvd.fixups) == len(self.vtx.vertices)
             prev_lod = self.vvd.fixups[0].lod
             offsets = [self.vvd.fixups[0].source_vertex_id]
@@ -194,10 +194,11 @@ class Mdl(base.SceneDescription, breki.FriendlyBinaryFile):
                     offsets.append(fixup.source_vertex_id)
                 prev_lod = fixup.lod
             del prev_lod
-        else:  # single level of detail / no fixups
+        else:  # no fixups
             offset = 0
             offsets = list()
             for i, texture in enumerate(self.textures):
+                # NOTE: assuming 1 strip per strip group
                 offsets.append(offset)
                 index = (0, 0, 0, i, 0, 0)
                 offset += self.vtx.strips[index].num_vertices
