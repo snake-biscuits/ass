@@ -185,15 +185,22 @@ class Mdl(base.SceneDescription, breki.FriendlyBinaryFile):
         # -- y axis scale may be incorrect for non-square textures
 
         # vvd fixup -> vertex offsets
-        # assert len(self.vvd.fixups) >= 1
-        assert len(self.vvd.fixups) == len(self.vtx.vertices)
-        prev_lod = self.vvd.fixups[0].lod
-        offsets = [self.vvd.fixups[0].source_vertex_id]
-        for fixup in self.vvd.fixups[1:]:
-            if fixup.lod >= prev_lod:
-                offsets.append(fixup.source_vertex_id)
-            prev_lod = fixup.lod
-        del prev_lod
+        if self.vvd.header.num_lods > 1:
+            assert len(self.vvd.fixups) == len(self.vtx.vertices)
+            prev_lod = self.vvd.fixups[0].lod
+            offsets = [self.vvd.fixups[0].source_vertex_id]
+            for fixup in self.vvd.fixups[1:]:
+                if fixup.lod >= prev_lod:
+                    offsets.append(fixup.source_vertex_id)
+                prev_lod = fixup.lod
+            del prev_lod
+        else:  # single level of detail / no fixups
+            offset = 0
+            offsets = list()
+            for i, texture in enumerate(self.textures):
+                offsets.append(offset)
+                index = (0, 0, 0, i, 0, 0)
+                offset += self.vtx.strips[index].num_vertices
 
         vertices = [
             geometry.Vertex(v.position, v.normal, v.uv)
