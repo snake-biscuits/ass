@@ -31,11 +31,14 @@ File format parsers for 3D models
 | `*.usda` | `pixar.Usd` | `model/vnd.usda` | :-1: | :+1: |
 | `*.usdc` | `pixar.Usd` | | :-1: | :-1: |
 | `*.usdz` | `pixar.Usd` | `model/vnd.usdz+zip` | | |
+| `*.mdl` | `valve.Mdl` | | :+1: | :-1: |
 | `*.obj` | `wavefront.Obj` | `model/obj` | :+1: | :+1: |
 
 > `*.usd` extension can be used for either `*.usda` or `*.usdc`
 
 > `*.usdz` can be opened with `pixar.Usd.from_archive`
+
+> `*.mdl` support is currently only for v53 (Titanfall 2)
 
 > `blockbench.BBModel` & `khronos.Dae` are planned
 
