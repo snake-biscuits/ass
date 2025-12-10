@@ -186,7 +186,10 @@ class Mdl(base.SceneDescription, breki.FriendlyBinaryFile):
 
         # vertex offsets
         if len(self.vvd.fixups) > 0:
-            assert len(self.vvd.fixups) == len(self.vtx.vertices)
+            # NOTE: hacky fixup-material matching
+            # -- breaks in some cases
+            # TODO: compare with meshes
+            # -- (material, lod) -> fixup lookup
             prev_lod = self.vvd.fixups[0].lod
             offsets = [self.vvd.fixups[0].source_vertex_id]
             for fixup in self.vvd.fixups[1:]:
@@ -194,6 +197,9 @@ class Mdl(base.SceneDescription, breki.FriendlyBinaryFile):
                     offsets.append(fixup.source_vertex_id)
                 prev_lod = fixup.lod
             del prev_lod
+            # HACK: levels_terrain/mp_homestead/hs_wall_exterior_wall_02_128_128
+            if len(offsets) != len(self.textures):
+                offsets.insert(1, 40)  # manually deduced
         else:  # no fixups
             offset = 0
             offsets = list()
