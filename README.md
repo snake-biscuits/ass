@@ -64,10 +64,16 @@ You can also clone with `pip`:
 $ pip install git+https://github.com/snake-biscuits/ass.git
 ```
 
+<!--
 Or, use the latest **stable** release (August 2026 | 0.1.0 | Python 3.8-14):
 ```
 $ pip install ass
 ```
+-->
+
+> [!IMPORTANT]
+> The package name `ass` is taken on PyPI.
+> Can't distribute without renaming the project.
 
 
 ## Usage
