@@ -45,10 +45,25 @@ File format parsers for 3D models
 
 ## Installation
 
-> TODO: how to get ass
+<!-- how to get ass -->
 
-```sh
-$ pip install "ass @ git+ssh://git@github.com:snake-biscuits/ass.git"
+To use the
+latest **unstable** version, clone with `git`:
+```
+$ git clone git@github.com:snake-biscuits/ass.git
+$ cd ass
+$ pip install -e .
+```
+
+You can also clone with `pip`:
+
+```
+$ pip install git+https://github.com/snake-biscuits/ass.git
+```
+
+Or, use the latest **stable** release (August 2026 | 0.1.0 | Python 3.8-14):
+```
+$ pip install ass
 ```
 
 
