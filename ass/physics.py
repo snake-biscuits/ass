@@ -67,6 +67,15 @@ class AABB:
         else:
             raise TypeError(f"{self.__class__.__name__} cannot contain '{type(other).__name__}'")
 
+    @property
+    def corners(self) -> List[vector.vec3]:
+        xs, ys, zs = zip(self.mins, self.maxs)
+        return [
+            vector.vec3(x, y, z)
+            for x in xs
+            for y in ys
+            for z in zs]
+
     def intersects(self, other: AABB) -> bool:
         return all([sm <= oM and sM >= om for sm, oM, sM, om in zip(self.mins, other.maxs, self.maxs, other.mins)])
 
@@ -180,30 +189,32 @@ class Plane:
     def test(self, point: vector.vec3) -> float:
         return vector.dot(self.normal, point) - self.distance
 
-    def intersects(self, aabb: AABB) -> bool:
-        # TODO: document how edge-cases are handled
-        xs, ys, zs = zip(aabb.mins, aabb.maxs)
-        vertices = [vector.vec3(x, y, z) for x in xs for y in ys for z in zs]
-        side_checks = {self.test(v) > 0 for v in vertices}  # true: front, false: back
-        return len(side_checks) > 0  # plane divides the aabb
+    def intersections(self, aabb: AABB) -> List[float]:
+        return [self.test(vertex) for vertex in aabb.corners]
 
-    # BRUSH INTERACTIONS
+    def slices(self, aabb: AABB) -> bool:
+        # true: front, false: back, none: edge
+        halves = {
+            None if math.isclose(depth, 0, abs_tol=1e-4) else depth > 0
+            for depth in self.intersections(aabb)}
+        return (True in halves) and (False in halves)
 
-    def is_axial_of(self, brush: Brush) -> bool:
-        """axial normal & same distance as side of the same axis"""
-        if math.isclose(self.normal.sqrmagnitude(), 1):
-            sign = vector.dot(self.normal, [1] * 3)
-            axes = (brush.bounds.mins, brush.bounds.maxs)[sign > 0]
-            return math.isclose(vector.dot(self.normal, axes), self.distance)
-        return False
+    # AABB INTERACTIONS
 
-    def is_bevel_of(self, brush: Brush) -> bool:
-        """45 degree normal and distance lines up with matching brush corner / edge"""
-        # sqrt(2) / 2 or sqrt(3) / 3 (2D / 3D 45 degrees)
-        # on outward facing corners of aabb
-        # use normal sign to identify edge / corner
-        # use vector.dot to detect if normal is exactly on edge / corner
-        raise NotImplementedError()
+    def is_axial_of(self, aabb: AABB) -> bool:
+        """Plane matches an axial side of AABB"""
+        # is it faster to check axial-ness of plane normal?
+        near_intersections = [
+            math.isclose(depth, 0, abs_tol=1e-4)
+            for depth in self.intersections(aabb)]
+        return near_intersections.count(True) == 4
+
+    def is_bevel_of(self, aabb: AABB) -> bool:
+        """Plane matches an bevel (edge) of AABB"""
+        near_intersections = [
+            math.isclose(depth, 0, abs_tol=1e-4)
+            for depth in self.intersections(aabb)]
+        return near_intersections.count(True) == 2
 
     # editor format 2-way conversion
 
